@@ -1,5 +1,6 @@
 # a68s-scripts
-Prototype scripts used to build the ACK A68S compiler
+Prototype scripts used to build the ACK A68S compiler: https://github.com/davidgiven/ack/tree/default/lang/a68s
+
 
 The scripts here are what I've been using to build an executable from the A68S sources
 They are for use on Windows and use TCC as the C compiler (assumed to be installed at \TCC\TCC.exe)
@@ -10,4 +11,4 @@ can do the "file names on the command line" thing.
 
 NB: I've created an executable using this (will be bin\init0.exe) but it will produce code that the rest of the ACK won't like.
 
-Also included is hilo.8 - an A68S version of DG's hilo.* example program(s).
+Also included is hilo.8 - an A68S version of DG's hilo.* example progra
