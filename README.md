@@ -11,4 +11,4 @@ can do the "file names on the command line" thing.
 
 NB: I've created an executable using this (will be bin\init0.exe) but it will produce code that the rest of the ACK won't like.
 
-Also included is hilo.8 - an A68S version of DG's hilo.* example progra
+Also included is hilo.8 - an A68S version of DG's hilo.* example programs.
