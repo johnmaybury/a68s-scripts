@@ -1,0 +1,44 @@
+.pr point .pr
+.begin
+
+    .proc playGame = .void:
+         .begin
+             .loc .int Number   := .entier ( random * 100 ) + 1;
+             .loc .int Attempts := 1;
+             print( ( "See if you can guess my number.", newline ) );
+             .while print( ( newline, "> " ) );
+                    .loc .int guess;
+                    read( ( guess, newline ) );
+                   .if   guess < Number
+                   .then print( ( "Try a bit higher.", newline ) )
+                   .elif guess > Number
+                   .then print( ( "Try a bit lower.", newline ) )
+                   .fi;
+                   guess /= Number
+             .do   Attempts +:= 1
+             .od;
+             print( ( newline, "You got it right in only " ) );
+             print( ( whole( Attempts, 0 ) ) );
+             print( ( .if Attempts = 1 .then "go" .else "goes" .fi, "!" ) );
+             print( ( newline ) )
+        .end # playGame # ;
+
+    .loc .string PlayerName;
+    print( ( "Hi there! I'm written in ALGOL 68S. Before we start, what is your name?", newline ) );
+    print( ( "> " ) );
+    read( ( PlayerName, newline ) );
+    print( ( newline, "Hello, ", PlayerName, "!", newline ) );
+
+    .while playGame;
+           print( ( newline, "Would you like another go?", newline, "> " ) );
+           .loc .string s;
+           read( ( s, newline ) );
+           .if   .upb s < .lwb s
+           .then .true
+           .else s[ 1 ] /= "n" .and s[ 1 ] /= "N"
+           .fi
+    .do
+        print( ( "Excellent!", newline ) )
+    .od;
+    print( ( "Thanks for playing --- goodbye!", newline ) )
+.end
