@@ -19,6 +19,7 @@ BEGIN \
 
     longReserved[ "PROCEDURE"  ] = "Y";
     longReserved[ "IMPLEMENT"  ] = "Y";
+    longReserved[ "SEGMENTED"  ] = "Y";
 
     standardFiles[ "INPUT"     ] = 0;
     standardFiles[ "OUTPUT"    ] = 1;
@@ -40,6 +41,7 @@ BEGIN \
     define[        "EXTERN"    ] = "EXTERNAL";
     define[        "INLINE"    ] = "XQINLINE";
     define[        "XOR"       ] = "XOR9QZ";
+    define[        "SEGMENTED" ] = "";
 
     section[       "CONST"     ] = "Y";
     section[       "LABEL"     ] = "Y";
@@ -48,6 +50,7 @@ BEGIN \
 
     # prefixes for messages
     ERROR_PREFIX                 = "Error: ";
+    WARNING_PREFIX               = "Warning: ";
     INFORMATION_PREFIX           = "Note:  ";
 
     # "declare" some global arrays and variables
@@ -104,6 +107,7 @@ BEGIN \
     } # for dPos
 
 
+    warningCount                 = 0;
     errorCount                   = 0;
 
     # parse the source if possible
@@ -126,7 +130,8 @@ BEGIN \
 
     } # if errorCount == 0
 
-    printf( "%5d error(s) %s\n", errorCount, srcBaseName );
+    printf( "%5d error(s) %5d warning(s) %s\n",
+            errorCount, warningCount, srcBaseName );
 
 
 } # BEGIN
@@ -148,6 +153,13 @@ function message( prefix, text )
 function note( text )
 {
     message( INFORMATION_PREFIX, text );
+} # error
+
+
+function warning( text )
+{
+    message( WARNING_PREFIX, text );
+    warningCount ++;
 } # error
 
 
@@ -929,6 +941,22 @@ function parseProgram(                                            mainSection,
                uc_text != "FUNCTION"    );
         mustBeSemicolon( "the program/module header" );
         skipSemicolon();
+        while( uc_text == "PROGRAM" )
+        {
+            # more than "PROGRAM" - skip the extra ones
+            warning( "Skipping additional program header" );
+            do
+            {
+                nextSymbol();
+            }
+            while( sy_type != EOF_SYMBOL    &&
+                   sy_text != ";"           &&
+                   ! ( uc_text in section ) &&
+                   uc_text != "PROCEDURE"   &&
+                   uc_text != "FUNCTION"    );
+            mustBeSemicolon( "the second/subsequent program header" );
+            skipSemicolon();
+        } # while uc_text == "PROGRAM"
         if( uc_text == "IMPLEMENT" )
         {
             nextSymbol();

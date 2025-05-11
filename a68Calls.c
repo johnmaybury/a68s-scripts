@@ -1,13 +1,16 @@
 // a68Calls.c: Routines for the a68s compiler: open/clsoe files specified on
 //                                             the program command-line and
-//                                             ABORT()
+//                                             various other routines
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define MAX_NAME_LENGTH    50
 
 
-FILE * openFile( int argc, char ** argv, int pos, char * mode )
+static FILE * openF( char * fileName, char * mode )
 {
-    char * fileName = ( ( pos < argc ) ? argv[ pos ] : NULL );
     FILE * f        = NULL;
     char   rwMode   = ( * mode );
 
@@ -15,8 +18,8 @@ FILE * openFile( int argc, char ** argv, int pos, char * mode )
     {
         // invalid file I/O mode
         fprintf( stderr
-               , "file %d has an invalid I/O mode: '%c'\n"
-               , pos
+               , "file %s has an invalid I/O mode: '%c'\n"
+               , fileName
                , rwMode 
                );
     }
@@ -24,8 +27,7 @@ FILE * openFile( int argc, char ** argv, int pos, char * mode )
     {
         // no file on the command line
         fprintf( stderr
-               , "file %d not specified on the command line\n"
-               , pos
+               , "file name required (openF)\n"
                );
     }
     else if( strcmp( fileName, "-" ) == 0 )
@@ -66,7 +68,7 @@ FILE * openFile( int argc, char ** argv, int pos, char * mode )
     }
     else
     {
-        // popen the named file
+        // open the named file
         f = fopen( fileName, mode );
         if( f == NULL )
         {
@@ -78,12 +80,54 @@ FILE * openFile( int argc, char ** argv, int pos, char * mode )
     if( f == NULL )
     {
         // failed to open the file
+        fprintf( stderr, "**** Unable to open file %s\n"
+               , ( ( fileName == NULL ) ? "(null)" : fileName )
+               );
+        exit( 7 );
+    } // if 1 == NULL
+
+return f;
+} // openF
+
+
+FILE * openFile( int argc, char ** argv, int pos, char * mode )
+{
+    char * fileName = ( ( pos < argc ) ? argv[ pos ] : NULL );
+    FILE * f        = NULL;
+    char   rwMode   = ( * mode );
+
+    if( rwMode != 'r' && rwMode != 'w' )
+    {
+        // invalid file I/O mode
+        fprintf( stderr
+               , "file %d has an invalid I/O mode: '%c'\n"
+               , pos
+               , rwMode 
+               );
+    }
+    else if( fileName == NULL )
+    {
+        // no file on the command line
+        fprintf( stderr
+               , "file %d not specified on the command line\n"
+               , pos
+               );
+    }
+    else
+    {
+        // open the named file
+        f = openF( fileName, mode );
+    } // if rwMode != 'r' && != 'w';; fileName == NULL;;
+
+    if( f == NULL )
+    {
+        // failed to open the file
         fprintf( stderr, "**** Unable to open file %d\n", pos );
         exit( 7 );
     } // if 1 == NULL
 
 return f;
-} // mustopen
+} // openFile
 
 
 void closeFile( FILE * f )
@@ -101,6 +145,59 @@ void closeFile( FILE * f )
 } // closeFile
 
 
+int GETARG( char * argText, int argMax, int sl, int argNumber )
+{
+printf( "GETARG...\n" );fflush( stdout );
+    if( argMax > MAX_NAME_LENGTH || argMax < 1 )
+    {
+        // name too long/short
+        fprintf( stderr
+               , "Invalid arg text length: %d: must be in 1..%d (GETARG)\n"
+               , argMax
+               , MAX_NAME_LENGTH
+               );
+    }
+    else
+    {
+        // namew length is probably OK
+        // pretend the command line had #<argNumber> for the parameter
+        char aName[ MAX_NAME_LENGTH + 1 ];
+        sprintf( aName, "#%d", argNumber );
+        strncpy( argText, aName, argMax );
+        argText[ argMax - 1 ] = '\0';
+    } // if argMax > MAX_NAME_LENGTH || < 1;;
+
+printf( "...(%s)\n", argText  );fflush( stdout );
+
+} // GETARG
+
+
+void NAMEFILE( char * fileName, int nameMax, int mode, FILE ** f )
+{
+printf( "NAMEFILE...\n" );fflush( stdout );
+    if( nameMax > MAX_NAME_LENGTH || nameMax < 1 )
+    {
+        // name too long/short
+        fprintf( stderr
+               , "Invalid File name length: %d: must be in 1..%d (NAMEFILE)\n"
+               , nameMax
+               , MAX_NAME_LENGTH
+               );
+    }
+    else
+    {
+        // namew length is probably OK
+        char fName[ MAX_NAME_LENGTH + 1 ];
+        strncpy( fName, fileName, nameMax );
+        fName[ nameMax ] = '\0';
+        * f = openF( fName, ( ( mode == 1 ) ? "w" : "r" ) );
+    } // if nameMax > MAX_NAME_LENGTH || < 1;;
+
+printf( "...(%s)\n", fileName );fflush( stdout );
+
+} // NAMEFILE
+
+
 void ABORT( void )
 {
     printf( "**** HALT\n" );
@@ -112,3 +209,39 @@ int GETADDRE( void * p )
 {
 return (int) p;
 } // GETADDRE
+
+
+void CTIME1( char * dateTime, int dtLength )
+{
+
+    time_t      td;
+    struct tm * dt;
+
+    char        dateBuffer[ 128 ];
+    int         bfLength;
+
+    time( & td );
+    dt = localtime( & td );
+    strcpy( dateBuffer, ctime( & td ) );
+
+    sprintf( dateBuffer
+           , "%04d/%02d/%02d %02d:%02d:%02d"
+           , dt -> tm_year + 1900
+           , dt -> tm_mon + 1
+           , dt -> tm_mday
+           , dt -> tm_hour
+           , dt -> tm_min
+           , dt -> tm_sec
+           );
+    bfLength = strlen( dateBuffer );
+    while( bfLength < dtLength )
+    {
+        dateBuffer[ bfLength ] = ' ';
+        bfLength ++;
+    } // while bfLength < dtLength
+
+    strncpy( dateTime, dtLength, dateBuffer );
+    dateTime[ dtLength - 1 ] = '\0';
+
+
+} // CTIME1

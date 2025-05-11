@@ -19,6 +19,7 @@ BEGIN \
 
     longReserved[ "PROCEDURE"   ] = "Y";
     longReserved[ "IMPLEMENT"   ] = "Y";
+    longReserved[ "SEGMENTED"   ] = "Y";
     longReserved[ "ENEW_LENGTH" ] = "Y";
 
     standardFiles[ "INPUT"      ] = 0;
@@ -48,6 +49,7 @@ BEGIN \
     define[        "EXTERN"     ] = "EXTERNAL";
     define[        "INLINE"     ] = "XQINLINE";
     define[        "XOR"        ] = "XOR9QZ";
+    define[        "SEGMENTED"  ] = "";
 
     # prefixes for messages
     ERROR_PREFIX                  = "Error: ";

@@ -2,11 +2,12 @@
 
 BEGIN \
 {
-    FALSE       = 0;
-    TRUE        = 1;
+    FALSE           = 0;
+    TRUE            = 1;
 
-    seenInclude = FALSE;
-    seenENEW    = FALSE;
+    seenInclude     = FALSE;
+    seenENEW        = FALSE;
+    emitAlfUsesChar = FALSE;
 
     # command line can specify:
     #
@@ -22,12 +23,18 @@ BEGIN \
     #    -v ENEW=Y
     #          Process ENEW - this is the default
     #    -v RC=path-of-p2crc-file
+    #    -v CYB=N
+    #          do not handle the missing registers enum - this is the default
+    #    -v CYB=Y
+    #          handle the missing registers enum - for cybcod
 
-    printf( "#define ASPTR(x)           ( (void *) ( x ) )\n"               );
-    printf( "#define EDISPOSE(p,s)      free( (void *) ( p ) )\n"           );
-    printf( "#define ENEW(s)            ( (void *) malloc( s ) )\n"         );
-    printf( "#define GETADDRE(x)        ( (A68INT) ( (void *)(x) ) )\n"     );
-    printf( "#define INCPTR(x,y)        ( (void *) ( (x) + (y) ) )\n"       );
+
+    printf( "#define ASPTR(x)               ( (void *) ( x ) )\n"           );
+    printf( "#define EDISPOSE(p,s)          free( (void *) ( p ) )\n"       );
+    printf( "#define ENEW(s)                ( (void *) malloc( s ) )\n"     );
+    printf( "#define GETADDRE(x)            ( (A68INT) ( (void *)(x) ) )\n" );
+    printf( "#define INCPTR(x,y)            ( (void *) ( (x) + (y) ) )\n"   );
+    printf( "#define CTIME(bfr,len,u1,u2)   CTIME1(bfr,len)\n"            );
 
     printf( "enum { TKTAG, TKBOLD, TKDENOT, TKSYMBOL };\n"                  );
 
@@ -198,13 +205,13 @@ BEGIN \
 } # file = NULL
 
 # ignore "file = tmpfile"
-/^ *[a-zA-Z0-9_]+ *= *tmpfile *[(]/ \
+/^ *[]a-zA-Z0-9_[]+ *= *tmpfile *[(]/ \
 {
-    if( $1 in files )
+    if( $1 in files || $1 ~ /[[]/ )
     {
         # have a file
         $1 = "// ignore> " $1;
-    } # if $1 in files
+    } # if $1 in files || $1 ~ /[[]/
 } # file = tmpfile()
 
 # closeing a file
@@ -259,6 +266,65 @@ BEGIN \
 {
     sub( /, *PASC *[)]/, ", /*PASC*/PROC)", $0 );
 } # random PASC->PROC
+
+# define the operators and registers enums that p2c has omitted,
+# - if we are processing cybcod
+/^ *void  *ICODE *[(]/ \
+{
+    if( CYB == "Y" )
+    {
+        # we are processing the cybcod source
+        printf( "#define PLUS    1\n" );
+        printf( "#define MINUS   2\n" );
+        printf( "#define TIMES   3\n" );
+        printf( "#define OVER    4\n" );
+        printf( "#define COMMA   5\n" );
+        printf( "#define MISSING 6\n" );
+        printf( "#define B       1\n" );
+        printf( "#define A_      2\n" );
+        printf( "#define X       3\n" );
+        printf( "#define KK      4\n" );
+        printf( "#define STAR    5\n" );
+    } # if CYB == "Y"
+} # start of ICODE
+
+# undefine the registers enum that p2c has omitted, if we are processing cybcod
+/^ *void  *OCODE *[(]/ \
+{
+    if( CYB == "Y" )
+    {
+        # we are processing the cybcod source
+        printf( "#undef  PLUS    1\n" );
+        printf( "#undef  MINUS   2\n" );
+        printf( "#undef  TIMES   3\n" );
+        printf( "#undef  OVER    4\n" );
+        printf( "#undef  COMMA   5\n" );
+        printf( "#undef  MISSING 6\n" );
+        printf( "#undef  B       1\n" );
+        printf( "#undef  A       2\n" );
+        printf( "#undef  X       3\n" );
+        printf( "#undef  KK      4\n" );
+        printf( "#undef  STAR    5\n" );
+    } # if CYB == "Y"
+} # start of OCODE
+
+# correct calls to EMITALF for the PERQ cide generator
+/^ *void  *EMITALF *[(] *[Cc]har/ \
+{
+    # will need to fix EMITALF calls
+    emitAlfUsesChar = TRUE;
+} # EMITALF taks a Char parameter
+
+# correct calls to EMITALF for the PERQ cide generator
+/^ *EMITALF *[(]/ \
+{
+    if( emitAlfUsesChar )
+    {
+        # need to fix EMITALF calls
+        sub( /[)]/, ") )",             $0 );
+        sub( /[(]/, "( (Char *) \\&(", $0 );
+    } # if emitAlfUsesChar
+} # call to EMITALF
 
 { print; }
 

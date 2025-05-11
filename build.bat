@@ -4,17 +4,23 @@ rem em_ headers
 
 set location=%CD%
 cd ..\..
+\lua\lua515 modules/src/em_data/make_flag_c.lua < h\em_table > h\em_flag.c
+\lua\lua515 modules/src/em_data/make_mnem_c.lua < h\em_table > h\em_mnem.c
 \lua\lua515 modules/src/em_data/make_mnem_h.lua < h\em_table > h\em_mnem.h
+\lua\lua515 modules/src/em_data/make_pseu_c.lua < h\em_table > h\em_pseu.c
 \lua\lua515 modules/src/em_data/make_pseu_h.lua < h\em_table > h\em_pseu.h
 \lua\lua515 modules/src/em_data/make_spec_h.lua < h\em_table > h\em_spec.h
+rem \lua\lua515 modules/src/em_data/make_mnem_h.lua < h\em_table > h\em_mnem.h
+rem \lua\lua515 modules/src/em_data/make_pseu_h.lua < h\em_table > h\em_pseu.h
+rem \lua\lua515 modules/src/em_data/make_spec_h.lua < h\em_table > h\em_spec.h
 cd %location%
 
 set ACK_SYS=%1
-if    not %ACK_SYS%. == .         goto :haveSys
+if    %ACK_SYS%. == . (
     echo system not specified on the command line.
-    echo choose one of: pdp vax4 sun3 moon3 m68000 m68020 m68k2
+    echo choose one of: pdp vax4 sun3 moon3 m68000 m68020 m68k2 cyber perq temp
     exit /b 7
-:haveSys
+)
 set ACM=%ACK_SYS%
 if    %ACK_SYS% == pdp_v7       set ACM=pdp
 if    %ACK_SYS% == pdp_v7       set BM=0
@@ -28,7 +34,8 @@ if    %ACK_SYS% == sun2         set ACM=sun2
 if    %ACK_SYS% == m68_unisoft  set ACM=m68k2
 if    %ACK_SYS% == m68_sysV_0   set ACM=mantra
 
-copy /Y build.bat last_used_build.bat
+if exist last_ysed_build.bat copy /Y last_ysed_build.bat prev_used_build.bat
+copy /Y build.bat                    last_used_build.bat
 
 set PBASE=\p5\p2c-master
 set PINCLUDE=%PBASE%
@@ -69,7 +76,8 @@ set P2CGENERAL=-c tmp\_general.p2crc
 
 set CFAIL=
 
-set RBL=awk -f removeBlankLines.awk
+rem set RBL=awk -f removeBlankLines.awk
+set RBL=awk -f pp2.awk
 rem set PPP=awk -f prePascal.awk
 set PPP=awk -f ppp.awk
 set PPC=awk -f ppc.awk
@@ -93,53 +101,9 @@ set NOFLOAT=0
 set W=4
 set P=4
 set RECIPE=112 13 119
-
-rem set machine specifica
-if not %MACH%. == pdp. goto :notPdp
-   set W=2
-   set P=2
-   set RECIPE=12 13 119
-   goto :recipeSet
-:notPdp
-if not %MACH%. == m68k2. goto :notM68k2
-   set W=2
-   set P=4
-   set RECIPE=12 113 19
-   goto :recipeSet
-:notM68k2
-if not %MACH%. == moon3. goto :notMoon3
-   set W=2
-   set P=4
-   set RECIPE=12 113 19
-   set BSD4=-DBSD4
-   goto :recipeSet
-:notMoon3
-if not %MACH%. == m68020. goto :notM68020
-   goto :recipeSet
-:notM68020
-if not %MACH%. == m68000. goto :notM68000
-   goto :recipeSet
-:notM68000
-if not %MACH%. == sun3. goto :notSun3
-   set BSD4=-DBSD4
-   goto :recipeSet
-:notSun3
-if not %MACH%. == vax4. goto :notVax4
-   set BSD4=-DBSD4
-   goto :recipeSet
-:notVax4
-   echo machine %MACH% not known to a68s.
-   exit /b 1
-:recipeSet
-
-echo %MACH%: w/p: %W%/%P% RECIPE(%RECIPE%) NOFLOAT:%NOFLOAT% BSD4:%BSD4%
-
-rem note, originally, 21/121 did not appear in the tailoring options
-rem setting 21 causes the "semantic monitoring" code to be included
-set F21=21
-
-set TERRS=
-set TNOS=101 2 103 104 105 111 %F21% 122 123 24 125 32 133 41 42 150 151 152 153 154 155 161 %RECIPE%
+set cg=123 24 125
+set init5=init5
+set cybOption=
 
 rem in the original Makefile, 174 was used for most a68sdec.p tailors but that
 rem causes OPIDBLK to have the "wrong" declaration in some init programs which
@@ -153,13 +117,86 @@ set N76=76
 set N77=77
 set N78=78
 
-echo %TNOS% 70   71  %N72%   73  %N74% 175 %N76% %N77% %N78% 300 | %TAILOR% aem/a68sdec.p %TERRS% > tmp\a68sdec0.h
-echo %TNOS% 70 %N71%   72    73  %N74% 175 %N76% %N77% %N78% 300 | %TAILOR% aem/a68sdec.p %TERRS% > tmp\a68sdec2.h
-echo %TNOS% 70 %N71% %N72%   73    74   75 %N76% %N77% %N78% 300 | %TAILOR% aem/a68sdec.p %TERRS% > tmp\a68sdec4.h
-echo %TNOS% 70 %N71% %N72% %N73% %N74%  75   76  %N77%   78  300 | %TAILOR% aem/a68sdec.p %TERRS% > tmp\a68sdec5.h
-echo %TNOS% 70 %N71% %N72%   73  %N74% 175   76    77    78  300 | %TAILOR% aem/a68sdec.p %TERRS% > tmp\a68sdec6.h
+rem set machine specifica
+if      %MACH%. == pdp.      (
+   set W=2
+   set P=2
+   set RECIPE=12 13 119
+) else if %MACH%. == m68k2.  (
+   set W=2
+   set P=4
+   set RECIPE=12 113 19
+) else if %MACH%. == moon3.  (
+   set W=2
+   set P=4
+   set RECIPE=12 113 19
+   set BSD4=-DBSD4
+) else if %MACH%. == m68020. (
+   set skip=
+) else if %MACH%. == m68000. (
+   set skip=
+) else if %MACH%. == sun3.   (
+   set BSD4=-DBSD4
+) else if %MACH%. == vax4.   (
+   set BSD4=-DBSD4
+) else if %MACH%. == perq.   (
+   set BSD4=-DBSD4
+   set cg=123 124 125
+   set init5=perqcod
+) else if %MACH%. == cyber.  (
+   set BSD4=-DBSD4
+   set cg=123 124 125
+   set init5=cybcod
+   set cybOption=-v CYB=Y
+) else if %MACH%. == temp.   (
+   set BSD4=-DBSD4
+   set cg=23 24 125
+   set N78=78
+) else if %MACH%. == debug.  (
+   set BSD4=-DBSD4
+   set N33=33
+) else                       (
+   echo machine %MACH% not known to a68s.
+   exit /b 1
+)
+
+echo %MACH%: w/p: %W%/%P% RECIPE(%RECIPE%) NOFLOAT:%NOFLOAT% BSD4:%BSD4%
+
+rem note, originally, 21/121 did not appear in the tailoring options
+rem setting 21 causes the "semantic monitoring" code to be included
+set F21=121
+
+set TERRS=
+
+rem option 33 "generate code for the symbolic debugger"
+set N33=133
+rem set N33=33
+set TNOS=101   2 103 104 105 111 %F21% 122 123 %cg% 32 %N33% 41 42 150 151 152 153 154 155 161 %RECIPE%
+set TNOP=101 102 103 104   5 111 %F21% 122 123 %cg% 32 %N33% 41 42 150 151 152 153 154 155 161 %RECIPE%
+set TNOC=  1 102 103 104 105 111 %F21% 122 123 %cg% 32 %N33% 41 42 150 151 152 153 154 155 161 %RECIPE%
+set TNOE=%TNOS%
+
+echo TNOS:%TNOS%
 
 set LX1RC=-v RC=tmp/lx1.p2crc
+
+echo %TNOE% 70   71  %N72%   73  %N74% 175 %N76% %N77% %N78% 300 | %TAILOR% aem/a68sdec.p %TERRS% > tmp\a68sdec_.h
+echo lx0
+type tmp\a68sdec_.h                                                                         > tmp\_lx0.p
+echo %TNOE% 81 282 284 285 286 300                        | %TAILOR% aem\a68s1lx.p %TERRS% >> tmp\_lx0.p
+echo begin end.                                                                            >> tmp\_lx0.p
+%PPP% -v src=tmp/_lx0.p     -v ENEW=N -v HDRF=Y %LX1RC%   | %RBL%                           > tmp\lx0.p
+
+if %init5%. == perqcod. set TNOS=%TNOP%
+if %init5%. == cybcod.  set TNOS=%TNOC%
+
+echo %TNOS% 70   71  %N72%   73  %N74% 175 %N76% %N77% %N78%    300 | %TAILOR% aem/a68sdec.p %TERRS% > tmp\a68sdec0.h
+echo %TNOS% 70 %N71%   72    73  %N74% 175 %N76% %N77% %N78%    300 | %TAILOR% aem/a68sdec.p %TERRS% > tmp\a68sdec2.h
+echo %TNOS% 70 %N71% %N72%   73    74   75 %N76% %N77% %N78%    300 | %TAILOR% aem/a68sdec.p %TERRS% > tmp\a68sdec4.h
+echo %TNOS% 70 %N71% %N72% %N73% %N74%  75   76  %N77%   78     300 | %TAILOR% aem/a68sdec.p %TERRS% > tmp\a68sdec5.h
+echo %TNOS% 70 %N71% %N72%   73  %N74% 175   76    77    78     300 | %TAILOR% aem/a68sdec.p %TERRS% > tmp\a68sdec6.h
+
+echo %TNOP% 70 %N71% %N72% %N73% %N74%  75   76  %N77%   78  86 300 | %TAILOR% aem/a68sdec.p %TERRS% > tmp\a68sdecP.h
 
 echo lx1
 type tmp\a68sdec0.h                                                                         > tmp\_lx1.p
@@ -224,7 +261,7 @@ echo begin end.                                                            >> tm
 %PPP% -v src=tmp/_lx4.p     -v ENEW=N -v HDRF=Y -v RC=tmp/lx4.p2crc | %RBL% > tmp\lx4.p
 
 
-echo %TNOS% 300                                  | %TAILOR% aem/cmpdum.p  %TERRS%  > tmp\cmpdum.p
+rem echo %TNOS% 300                                  | %TAILOR% aem/cmpdum.p  %TERRS%  > tmp\cmpdum.p
 
 type tmp\a68sdec0.h                                                                > tmp\init1.p
 echo %TNOS% 300                                  | %TAILOR% aem\a68sint.p %TERRS% >> tmp\init1.p
@@ -256,8 +293,26 @@ echo %TNOS% 86 300                               | %TAILOR% aem\a68sdum.p %TERRS
 echo %TNOS% 86 300                               | %TAILOR% aem\a68scod.p %TERRS% >> tmp\init5.p
 echo begin end.                                                                   >> tmp\init5.p
 
+for %%s in ( perqcod perqce ) do (
+    awk -f perq.awk                < aem\%%s.p             | %RBL%                 > tmp\_%%s
+    type tmp\a68sdecP.h                                                            > tmp\%%s.p
+    echo %TNOP%    300    | %TAILOR% aem\a68sint.p %TERRS% | %RBL%                >> tmp\%%s.p
+    echo %TNOP% 86 300    | %TAILOR% aem\a68sdum.p %TERRS% | %RBL%                >> tmp\%%s.p
+    echo %TNOP% 86 300    | %TAILOR% tmp\_%%s      %TERRS% | %RBL%                >> tmp\%%s.p
+)
+for %%s in ( cybcod ) do (
+    awk -f perq.awk                < aem\%%s.p             | %RBL%                 > tmp\_%%s
+    type tmp\a68sdecP.h                                                            > tmp\%%s.p
+    echo %TNOC%    300    | %TAILOR% aem\a68sint.p %TERRS% | %RBL%                >> tmp\%%s.p
+    echo %TNOC% 86 300    | %TAILOR% aem\a68sdum.p %TERRS% | %RBL%                >> tmp\%%s.p
+    echo %TNOC% 86 300    | %TAILOR% tmp\_%%s      %TERRS% | %RBL%                >> tmp\%%s.p
+)
+rem echo begin end.                                                               >> tmp\cybcod.p
+rem echo begin end.                                                               >> tmp\perqcod.p
+echo begin end.                                                                   >> tmp\perqce.p
 
-set pList=a68s1ce a68s1cg a68s1md a68s1pa a68s1s1 a68s1s2 lx1 lx2 lx4 init4 init5
+
+set pList=a68s1ce a68s1cg a68s1md a68s1pa a68s1s1 a68s1s2 lx0 lx1 lx2 lx4 init4 init5 cybcod perqcod perqce
 for %%n in ( %pList% ) do ( if not exist tmp\%%n mkdir tmp\%%n
                             echo x > tmp\%%n\x
                             del /Q   tmp\%%n\*
@@ -278,43 +333,44 @@ for %%n in ( init3  ) do ( if not exist tmp\%%n mkdir tmp\%%n
                             del /Q   tmp\%%n\*
                             awk -f pas.awk -v src=tmp/%%n.p -v out=tmp/%%n -v ENEW=N -v def=PARSER=PARSESYN
                           )
-for %%n in ( cmpdum  ) do ( if not exist tmp\%%n mkdir tmp\%%n
-                            echo x > tmp\%%n\x
-                            del /Q   tmp\%%n\*
-                            awk -f pas.awk -v src=tmp/%%n.p -v out=tmp/%%n -v ENEW=N
-                          )
+rem for %%n in ( cmpdum  ) do ( if not exist tmp\%%n mkdir tmp\%%n
+rem                             echo x > tmp\%%n\x
+rem                             del /Q   tmp\%%n\*
+rem                             awk -f pas.awk -v src=tmp/%%n.p -v out=tmp/%%n -v ENEW=N
+rem                           )
+
 echo VAR> tmp\_VAR
 echo ENEW_LENGTH: INTEGER;>> tmp\_VAR
 
-call merge_cmpdum.bat
+rem call merge_cmpdum.bat
 
-%PPP% -v src=tmp/_cmpdum.pas       -v RC=tmp/cmpdum.p2crc -v ENEW=B | %RBL%        > tmp\cmpdum.pas
-type tmp\_general.p2crc               >> tmp\cmpdum.p2crc
-%PC% -o tmp\_cmpdum.c tmp\cmpdum.pas  -c tmp\cmpdum.p2crc
-%PPC% -v RC=tmp/cmpdum.p2crc -v EXTERN=N -v ENEW=N tmp\_cmpdum.c                   > tmp\cmpdum.c
-%CC% -o bin\cmpdum.exe -I%PINCLUDE% tmp\cmpdum.c a68Calls.c bin\libp2c.dll
-if errorlevel 1 set CFAIL=%CFAIL%cmpdum;
-echo.
+rem %PPP% -v src=tmp/_cmpdum.pas       -v RC=tmp/cmpdum.p2crc -v ENEW=B | %RBL%        > tmp\cmpdum.pas
+rem type tmp\_general.p2crc               >> tmp\cmpdum.p2crc
+rem %PC% -o tmp\_cmpdum.c tmp\cmpdum.pas  -c tmp\cmpdum.p2crc
+rem %PPC% -v RC=tmp/cmpdum.p2crc -v EXTERN=N -v ENEW=N tmp\_cmpdum.c                   > tmp\cmpdum.c
+rem %CC% -o bin\cmpdum.exe -I%PINCLUDE% tmp\cmpdum.c a68Calls.c bin\libp2c.dll
+rem if errorlevel 1 set CFAIL=%CFAIL%cmpdum;
+rem echo.
 
-call merge_init0.bat
+call merge_init0.bat %init5%
 
-%PPP% -v src=tmp/_init0.pas -v def=A68INIT=SYNTAXF -v RC=tmp/init0.p2crc -v ENEW=B | %RBL% > tmp\init0.pas
+%PPP% -v src=tmp/_init0.pas -v def=A68INIT=SYNTAXF;ASSERT=ASERT -v RC=tmp/init0.p2crc -v ENEW=B | %RBL% > tmp\init0.pas
                TYPE tmp\init0.p2crc
 type tmp\_general.p2crc                               >> tmp\init0.p2crc
 echo ModName    PMOD                                  >> tmp\init0.p2crc
 echo BufferedFile SYNTAXF # mode: r type: text        >> tmp\init0.p2crc
 %PC% -o tmp\_init0.c tmp\init0.pas                    -c tmp\init0.p2crc -h tmp\init0.h
-%PPC% -v EXTERN=N                                  -v RC=tmp/init0.p2crc    tmp\_init0.c   > tmp\init0.c
+%PPC% -v EXTERN=N %cybOption%   -v RC=tmp/init0.p2crc    tmp\_init0.c   > tmp\init0.c
 %CC% -o tmp\mod.o -c liba68s\mod.c
 %CC% -o bin\init0.exe -I%PINCLUDE% -I. tmp\init0.c a68Calls.c tmp\mod.o bin\libp2c.dll
 if errorlevel 1 set CFAIL=%CFAIL%init0.exe;
 echo.
 
 
-echo %TNOS% 70 71 172 73 174 175 176 177 178 300  | %TAILOR% aem\a68sdec.p %TERRS%    > tmp\_lx1s1.p
-echo %TNOS% 81 282 284 285 286 300                | %TAILOR% aem\a68s1lx.p %TERRS%   >> tmp\_lx1s1.p
-type                                                         aem\dec_main_s1.p       >> tmp\_lx1s1.p
-%PPP% -v src=tmp/_lx1s1.p -v RC=tmp/_lx1s1.p2crc -v ENEW=B | %RBL%                    > tmp\lx1s1.p
+echo %TNOS% 70 71 172 73 174 175 176 177 %N78% 300  | %TAILOR% aem\a68sdec.p %TERRS%    > tmp\_lx1s1.p
+echo %TNOS% 81 282 284 285 286 300                  | %TAILOR% aem\a68s1lx.p %TERRS%   >> tmp\_lx1s1.p
+type                                                           aem\dec_main_s1.p       >> tmp\_lx1s1.p
+%PPP% -v src=tmp/_lx1s1.p -v RC=tmp/_lx1s1.p2crc -v ENEW=B | %RBL%                      > tmp\lx1s1.p
 
 for %%n in ( lx1s1   ) do ( if not exist tmp\%%n mkdir tmp\%%n
                             echo x > tmp\%%n\x
